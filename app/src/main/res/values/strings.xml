@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Screen Manager</string>
+
+    <string name="pref_enabled_title">Enable</string>
+
+    <string name="pref_enabled_on_battery_title">Enabled on Battery</string>
+    <string name="pref_enabled_on_battery_desc">Keep screen awake even on battery power.</string>
+
+    <string name="pref_timeofday_title">Enabled at Time</string>
+    <string name="pref_timeofday_desc">Set the time period when the screen should be kept awake.</string>
+
+    <string-array name="pref_timeofday_display_values">
+        <item>Only during the daytime</item>
+        <item>Only during the nighttime</item>
+        <item>Always</item>
+    </string-array>
+
+</resources>

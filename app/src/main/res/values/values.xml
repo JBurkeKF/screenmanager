@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="pref_enabled">pref_enabled</string>
+    <item name="pref_enabled_default" type="bool" format="boolean">false</item>
+
+    <string name="pref_enabled_on_battery">pref_enabled_on_battery</string>
+    <item name="pref_enabled_on_battery_default" type="bool" format="boolean">false</item>
+
+    <string name="pref_timeofday">pref_timeofday</string>
+    <string name="pref_timeofday_default">day</string>
+
+    <string-array name="pref_timeofday_values">
+        <item>day</item>
+        <item>night</item>
+        <item>all</item>
+    </string-array>
+
+</resources>
