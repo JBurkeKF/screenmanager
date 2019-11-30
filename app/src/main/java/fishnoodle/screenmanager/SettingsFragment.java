@@ -40,6 +40,26 @@ public class SettingsFragment extends PreferenceFragment
                 } );
 
             getPreferenceScreen().addPreference( p );
+
+            final Preference p2 = new Preference( getActivity() );
+            p2.setKey( "pref_request_update" );
+            p2.setTitle( "Force Update Current State" );
+
+            p2.setOnPreferenceClickListener( new Preference.OnPreferenceClickListener()
+                {
+                    @Override
+                    public boolean onPreferenceClick( Preference preference )
+                    {
+                        final Intent serviceIntent = new Intent( getActivity(), ScreenManagerService.class );
+                        serviceIntent.setAction( ScreenManagerService.ACTION_UPDATE );
+
+                        getActivity().startService( serviceIntent );
+
+                        return false;
+                    }
+                } );
+
+            getPreferenceScreen().addPreference( p2 );
         }
     }
 }

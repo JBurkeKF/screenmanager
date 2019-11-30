@@ -5,6 +5,9 @@ import java.util.List;
 
 import android.app.ActivityManager;
 import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -21,15 +24,18 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.SystemClock;
+import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 
 public class ScreenManagerService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener, SensorEventListener
 {
     public final static String ACTION_REQUEST_DISPLAY_STATE = "fishoodle.screenmanager.ACTION_REQUEST_DISPLAY_STATE";
 
-    private final static String WAKE_LOCK_TAG = "KF Screen Manager";
+    private final static String WAKE_LOCK_TAG = "KF Screen Manager: Wake Lock";
 
-    private final static String ACTION_UPDATE = "fishnoodle.screenmanager.ACTION_UPDATE";
+    private final static int NOTIFICATION_SERVICE_ID = 120;
+
+    public final static String ACTION_UPDATE = "fishnoodle.screenmanager.ACTION_UPDATE";
 
     private final static int LIGHT_SENSOR_INTENT_REQUEST_CODE = 401;
     private final static int LIGHT_SENSOR_CHECK_TIME_MS = 5000;
@@ -52,6 +58,7 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
 
     private final BatteryReceiver batteryReceiver = new BatteryReceiver();
     private boolean batteryReceiverRegistered = false;
+    private boolean batteryTestRunning = false;
 
     private final ScreenStateReceiver screenStateReceiver = new ScreenStateReceiver();
     private boolean screenStateReceiverRegistered = false;
@@ -60,7 +67,6 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
     private PendingIntent lightSensorAlarm = null;
 
     private SensorManager sensorManager;
-    private Sensor lightSensor;
     private boolean lightSensorEnabled = false;
     private boolean lightTestEnabled = false;
     private long lastTestCheckTimeMS = 0;
@@ -76,10 +82,11 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
     {
         super.onCreate();
 
+        startServiceInForeground();
+
         handler = new Handler( getMainLooper() );
 
         sensorManager = (SensorManager) getSystemService( Context.SENSOR_SERVICE );
-        lightSensor = sensorManager.getDefaultSensor( Sensor.TYPE_LIGHT );
 
         final SharedPreferences prefs = getSharedPreferences( VersionDefinition.SHARED_PREFS_NAME, VersionDefinition.SHARED_PREFS_MODE );
         prefs.registerOnSharedPreferenceChangeListener( this );
@@ -96,6 +103,8 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             {
                 setLightSensorEnabled( true );
 
+                SysLog.writeD( "Update wake lock from random update" );
+
                 updateScreenWakeLockState();
             }
             else if ( TextUtils.equals( intent.getAction(), ACTION_REQUEST_DISPLAY_STATE ) )
@@ -104,7 +113,9 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             }
         }
 
-        return super.onStartCommand( intent, flags, startId );
+        super.onStartCommand( intent, flags, startId );
+
+        return START_STICKY;
     }
 
     @Override
@@ -116,6 +127,8 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
     @Override
     public void onDestroy()
     {
+        SysLog.writeD( "ScreenManagerService is being destroyed" );
+
         final SharedPreferences prefs = getSharedPreferences( VersionDefinition.SHARED_PREFS_NAME, VersionDefinition.SHARED_PREFS_MODE );
         prefs.unregisterOnSharedPreferenceChangeListener( this );
 
@@ -130,6 +143,12 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         setLightSensorEnabled( false );
 
         releaseCurrentWakeLock();
+
+        SysLog.writeD( "ScreenManagerService sending restart broadcast" );
+
+        final Intent restartServiceIntent = new Intent( this, RestartScreenManagerReceiver.class );
+
+        sendBroadcast( restartServiceIntent );
     }
 
     public void onSharedPreferenceChanged( final SharedPreferences prefs, final String key )
@@ -188,6 +207,8 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             }
         }
 
+        SysLog.writeD( "Update wake lock from shared prefs" );
+
         handler.post( new Runnable()
         {
             public void run()
@@ -232,7 +253,7 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
     {
     }
 
-    public static void startServiceIfNotRunning( final Context context )
+    public static Intent startServiceIfNotRunning( final Context context )
     {
         final String packageName = context.getPackageName();
         boolean isServiceRunning = false;
@@ -248,10 +269,45 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             }
         }
 
+        final Intent serviceIntent = new Intent( context, ScreenManagerService.class );
+
         if ( !isServiceRunning )
         {
-            final Intent serviceIntent = new Intent( context, ScreenManagerService.class );
             context.startService( serviceIntent );
+
+            //final Intent phoneServiceIntent = new Intent( context, PhoneVolumeService.class );
+            //context.startService( phoneServiceIntent );
+        }
+
+        return serviceIntent;
+    }
+
+    @SuppressWarnings( "NewApi" )
+    private void startServiceInForeground()
+    {
+        if ( android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O )
+        {
+            final NotificationManager notificationManager = (NotificationManager) getSystemService( Context.NOTIFICATION_SERVICE );
+            final String channelID = "ScreenManagerChannel";
+            final NotificationChannel channel = new NotificationChannel( channelID, "Screen Manager Service", NotificationManager.IMPORTANCE_NONE );
+            channel.setLockscreenVisibility( Notification.VISIBILITY_SECRET );
+
+            notificationManager.createNotificationChannel( channel );
+
+            final Intent settingsActivityIntent = new Intent( this, SettingsActivity.class );
+            final PendingIntent settingsActivityPendingIntent = PendingIntent.getActivity( this, 120, settingsActivityIntent, 0 );
+
+            NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder( this, channelID );
+            notificationBuilder.setOngoing( true );
+            notificationBuilder.setSmallIcon( R.drawable.ic_launcher );
+            notificationBuilder.setCategory( Notification.CATEGORY_SERVICE );
+            notificationBuilder.setVisibility( Notification.VISIBILITY_SECRET );
+            notificationBuilder.setPriority( NotificationCompat.PRIORITY_LOW );
+            notificationBuilder.setContentIntent( settingsActivityPendingIntent );
+
+            Notification notification = notificationBuilder.build();
+
+            startForeground( NOTIFICATION_SERVICE_ID, notification );
         }
     }
 
@@ -262,12 +318,18 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         rescheduleAlarms( false );
         updateDay();
 
+        SysLog.writeD( "Current state:\n" + getCurrentState() );
+
         boolean shouldWakeLock = enabled && isScreenOn();
+
+        //SysLog.writeD( "Wake lock check 1: " + shouldWakeLock );
 
         if ( shouldWakeLock && !enabledOnBattery )
         {
             shouldWakeLock = !isOnBattery();
         }
+
+        //SysLog.writeD( "Wake lock check 2: " + shouldWakeLock );
 
         if ( shouldWakeLock && TextUtils.equals( timeOfDay, TIME_DAY ) )
         {
@@ -280,6 +342,8 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             // Wake lock only during the night
             shouldWakeLock = !isDay;
         }
+
+        //SysLog.writeD( "Wake lock check 3: " + shouldWakeLock );
 
         if ( shouldWakeLock != hasWakeLock )
         {
@@ -360,19 +424,24 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         {
             if ( shouldEnable )
             {
-                if ( sensorManager != null && lightSensor != null )
+                if ( sensorManager != null )
                 {
-                    sensorManager.registerListener( this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL );
+                    final Sensor lightSensor = sensorManager.getDefaultSensor( Sensor.TYPE_LIGHT );
 
-                    lightSensorEnabled = true;
-                    lastTestCheckTimeMS = SystemClock.elapsedRealtime();
-                    lastTestCheckStartTimeMS = lastTestCheckTimeMS;
-                    lightSensorData.clear();
+                    if ( lightSensor != null )
+                    {
+                        sensorManager.registerListener( this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL );
 
-                    // Cancel existing alarms because we're running a check now
-                    rescheduleAlarms( true );
+                        lightSensorEnabled = true;
+                        lastTestCheckTimeMS = SystemClock.elapsedRealtime();
+                        lastTestCheckStartTimeMS = lastTestCheckTimeMS;
+                        lightSensorData.clear();
 
-                    handler.postDelayed( finalizeLightSensorValue, LIGHT_SENSOR_CHECK_TIME_MS );
+                        // Cancel existing alarms because we're running a check now
+                        rescheduleAlarms( true );
+
+                        handler.postDelayed( finalizeLightSensorValue, LIGHT_SENSOR_CHECK_TIME_MS );
+                    }
                 }
             }
             else
@@ -409,8 +478,18 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         final Intent batteryIntent = registerReceiver( null, filter );
 
         final int status = batteryIntent.getIntExtra( BatteryManager.EXTRA_STATUS, -1 );
+        final int pluggedStatus = batteryIntent.getIntExtra( BatteryManager.EXTRA_PLUGGED, -1 );
 
-        return status != BatteryManager.BATTERY_STATUS_CHARGING && status != BatteryManager.BATTERY_STATUS_FULL;
+        if ( batteryTestRunning && pluggedStatus >= BatteryManager.BATTERY_PLUGGED_AC )
+        {
+            batteryTestRunning = false;
+        }
+
+        SysLog.writeD( "Check battery status [" + status + "], plugged status [" + pluggedStatus + "]" );
+        SysLog.writeD( "Battery test running [" + batteryTestRunning + "]" );
+
+        //return status != BatteryManager.BATTERY_STATUS_CHARGING && status != BatteryManager.BATTERY_STATUS_FULL;
+        return pluggedStatus < BatteryManager.BATTERY_PLUGGED_AC;
     }
 
     @SuppressWarnings( "deprecation" )
@@ -538,38 +617,42 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             return;
         }
 
-        String currentState = "";
-
-        synchronized ( this )
-        {
-            currentState += "Enabled: " + enabled + "\n";
-            currentState += "Enabled on battery: " + enabledOnBattery + "\n";
-            currentState += "Time of day: " + timeOfDay + "\n";
-            currentState += "Light threshold: " + lightThresholdMin + " (lx) - " + lightThresholdMax + " (lx)\n";
-            currentState += "Light test interval: " + lightTestIntervalS + "s\n\n";
-
-            currentState += "Currently has wake lock: " + hasWakeLock + "\n\n";
-
-            currentState += "Battery receiver registered: " + batteryReceiverRegistered + "\n";
-            currentState += "Is on battery: " + isOnBattery() + "\n\n";
-
-            currentState += "Screen state receiver registered: " + screenStateReceiverRegistered + "\n";
-            currentState += "Is screen on: " + isScreenOn() + "\n\n";
-
-            currentState += "Light sensor active: " + lightSensorEnabled + "\n";
-            currentState += "Light testing enabled: " + lightTestEnabled + "\n";
-            currentState += "Light sensor value: " + currentLightSensor + " (lx)\n";
-            currentState += "Light sensor check time: " + ( Math.max( 0.0f, Math.min( LIGHT_SENSOR_CHECK_TIME_MS, SystemClock.elapsedRealtime() - lastTestCheckStartTimeMS ) ) / 1000.0f ) + "s/" + ( LIGHT_SENSOR_CHECK_TIME_MS / 1000.0f ) + "s\n";
-            currentState += "Last raw light value: " + ( lightSensorData.size() > 0 ? lightSensorData.get( lightSensorData.size() - 1 ).value : 0.0f ) + "\n";
-            currentState += "Light sensor detects day: " + isDay + "\n";
-            currentState += "Next light sensor check: " + ( lightTestIntervalS > 0.0f ? ( Math.max( 0.0f, ( lastLightSensorCheckMS + lightTestIntervalS * 1000.0f - SystemClock.elapsedRealtime() ) / 1000.0f ) + "s" ) : "continuous" ) + "\n";
-            currentState += "Alarms schedule: " + alarmsScheduled;
-        }
+        final String currentState = getCurrentState();
 
         final Intent displayStateIntent = new Intent( SettingsActivity.ACTION_DISPLAY_STATE );
         displayStateIntent.putExtra( SettingsActivity.INTENT_EXTRA_STATE, currentState );
 
         sendBroadcast( displayStateIntent );
+    }
+
+    private synchronized String getCurrentState()
+    {
+        String currentState = "";
+
+        currentState += "Enabled: " + enabled + "\n";
+        currentState += "Enabled on battery: " + enabledOnBattery + "\n";
+        currentState += "Time of day: " + timeOfDay + "\n";
+        currentState += "Light threshold: " + lightThresholdMin + " (lx) - " + lightThresholdMax + " (lx)\n";
+        currentState += "Light test interval: " + lightTestIntervalS + "s\n\n";
+
+        currentState += "Currently has wake lock: " + hasWakeLock + "\n\n";
+
+        currentState += "Battery receiver registered: " + batteryReceiverRegistered + "\n";
+        currentState += "Is on battery: " + isOnBattery() + "\n\n";
+
+        currentState += "Screen state receiver registered: " + screenStateReceiverRegistered + "\n";
+        currentState += "Is screen on: " + isScreenOn() + "\n\n";
+
+        currentState += "Light sensor active: " + lightSensorEnabled + "\n";
+        currentState += "Light testing enabled: " + lightTestEnabled + "\n";
+        currentState += "Light sensor value: " + currentLightSensor + " (lx)\n";
+        currentState += "Light sensor check time: " + ( Math.max( 0.0f, Math.min( LIGHT_SENSOR_CHECK_TIME_MS, SystemClock.elapsedRealtime() - lastTestCheckStartTimeMS ) ) / 1000.0f ) + "s/" + ( LIGHT_SENSOR_CHECK_TIME_MS / 1000.0f ) + "s\n";
+        currentState += "Last raw light value: " + ( lightSensorData.size() > 0 ? lightSensorData.get( lightSensorData.size() - 1 ).value : 0.0f ) + "\n";
+        currentState += "Light sensor detects day: " + isDay + "\n";
+        currentState += "Next light sensor check: " + ( lightTestIntervalS > 0.0f ? ( Math.max( 0.0f, ( lastLightSensorCheckMS + lightTestIntervalS * 1000.0f - SystemClock.elapsedRealtime() ) / 1000.0f ) + "s" ) : "continuous" ) + "\n";
+        currentState += "Alarms schedule: " + alarmsScheduled;
+
+        return currentState;
     }
 
     private Runnable finalizeLightSensorValue = new Runnable()
@@ -621,6 +704,8 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
 
                 lastLightSensorCheckMS = SystemClock.elapsedRealtime();
 
+                SysLog.writeD( "Update wake lock from light" );
+
                 handler.post( new Runnable()
                     {
                         public void run()
@@ -662,6 +747,29 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         }
     };
 
+    private Runnable batteryTestRunnable = new Runnable()
+    {
+        public void run()
+        {
+            boolean runAgain = false;
+
+            updateScreenWakeLockState();
+
+            synchronized ( ScreenManagerService.this )
+            {
+                if ( batteryTestRunning )
+                {
+                    runAgain = true;
+                }
+            }
+
+            if ( runAgain )
+            {
+                handler.post( batteryTestRunnable );
+            }
+        }
+    };
+
     private class BatteryReceiver extends BroadcastReceiver
     {
         @Override
@@ -672,13 +780,21 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
                 if ( TextUtils.equals( intent.getAction(), Intent.ACTION_POWER_CONNECTED ) ||
                     TextUtils.equals( intent.getAction(), Intent.ACTION_POWER_DISCONNECTED ) )
                 {
-                    handler.post( new Runnable()
+                    SysLog.writeD( "Update wake lock from battery action [" + intent.getAction() + "]" );
+
+                    synchronized ( ScreenManagerService.this )
+                    {
+                        if ( TextUtils.equals( intent.getAction(), Intent.ACTION_POWER_CONNECTED ) )
                         {
-                            public void run()
-                            {
-                                updateScreenWakeLockState();
-                            }
-                        } );
+                            batteryTestRunning = true;
+                        }
+                        else
+                        {
+                            batteryTestRunning = false;
+                        }
+                    }
+
+                    handler.post( batteryTestRunnable );
                 }
             }
         }
@@ -694,6 +810,8 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
                 if ( TextUtils.equals( intent.getAction(), Intent.ACTION_SCREEN_ON ) ||
                     TextUtils.equals( intent.getAction(), Intent.ACTION_SCREEN_OFF ) )
                 {
+                    SysLog.writeD( "Update wake lock from screen action [" + intent.getAction() + "]" );
+
                     handler.post( new Runnable()
                         {
                             public void run()

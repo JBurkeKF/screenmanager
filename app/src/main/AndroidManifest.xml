@@ -5,12 +5,16 @@
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         tools:replace="android:icon,android:label">
+
         <activity
             android:name=".SettingsActivity"
             android:label="@string/app_name">
@@ -26,6 +30,12 @@
             android:exported="true">
         </service>
 
+        <service
+            android:name=".PhoneVolumeService"
+            android:enabled="true"
+            android:exported="true">
+        </service>
+
         <receiver
             android:name=".ScreenManagerBootReceiver"
             android:enabled="true"
@@ -34,6 +44,14 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name="fishnoodle.screenmanager.RestartScreenManagerReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:label="RestartScreenManager">
+        </receiver>
+
     </application>
 
 </manifest>

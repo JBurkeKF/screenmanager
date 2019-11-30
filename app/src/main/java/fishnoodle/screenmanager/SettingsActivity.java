@@ -22,6 +22,8 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
 
     private Dialog stateDialog = null;
 
+    private Intent startServiceIntent = null;
+
     @Override
     protected void onCreate( Bundle savedInstanceState )
     {
@@ -48,7 +50,7 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
 
         registerReceiver( displayStateReceiver, filter );
 
-        ScreenManagerService.startServiceIfNotRunning( this );
+        startServiceIntent = ScreenManagerService.startServiceIfNotRunning( this );
     }
 
     @Override
@@ -60,6 +62,11 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
         {
             stateDialog.dismiss();
             stateDialog = null;
+        }
+
+        if ( startServiceIntent != null )
+        {
+            stopService( startServiceIntent );
         }
 
         super.onDestroy();
@@ -102,7 +109,7 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
                 }
 
                 stateDialog = new AlertDialog.Builder( SettingsActivity.this )
-                    .setTitle( "Server State" )
+                    .setTitle( "Service State" )
                     .setMessage( state )
                     .setPositiveButton( android.R.string.ok, null )
                     .create();
