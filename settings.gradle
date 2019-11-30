@@ -1,2 +1,0 @@
-include ':_skymanager', ':app'
-project(':_skymanager').projectDir = new File(settingsDir, '../_skymanager/android_studio')
