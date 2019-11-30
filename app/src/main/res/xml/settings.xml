@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:smpreferenceslider="http://schemas.android.com/apk/res-auto">
+
+    <CheckBoxPreference
+        android:key="@string/pref_enabled"
+        android:title="@string/pref_enabled_title"
+        android:defaultValue="@bool/pref_enabled_default"
+    />
+
+    <CheckBoxPreference
+        android:key="@string/pref_enabled_on_battery"
+        android:title="@string/pref_enabled_on_battery_title"
+        android:summary="@string/pref_enabled_on_battery_desc"
+        android:defaultValue="@bool/pref_enabled_on_battery_default"
+    />
+
+    <ListPreference
+        android:key="@string/pref_timeofday"
+        android:title="@string/pref_timeofday_title"
+        android:summary="@string/pref_timeofday_desc"
+        android:defaultValue="@string/pref_timeofday_default"
+        android:entries="@array/pref_timeofday_display_values"
+        android:entryValues="@array/pref_timeofday_values"
+    />
+
+    <fishnoodle.screenmanager.PreferenceSlider
+        android:key="@string/pref_light_threshold"
+        android:title="@string/pref_light_threshold_title"
+        android:summary="@string/pref_light_threshold_desc"
+        android:defaultValue="@string/pref_light_threshold_default"
+        smpreferenceslider:min="@dimen/pref_light_threshold_min_value"
+        smpreferenceslider:max="@dimen/pref_light_threshold_max_value"
+        smpreferenceslider:minLabel="@string/pref_light_threshold_min_label"
+        smpreferenceslider:maxLabel="@string/pref_light_threshold_max_label"
+        smpreferenceslider:interval="@dimen/pref_light_threshold_interval_value"
+    />
+
+    <ListPreference
+        android:key="@string/pref_light_interval"
+        android:title="@string/pref_light_interval_title"
+        android:summary="@string/pref_light_interval_desc"
+        android:defaultValue="@string/pref_light_interval_default"
+        android:entryValues="@array/pref_light_interval_values"
+        android:entries="@array/pref_light_intervale_display_values"
+    />
+
+</PreferenceScreen>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Screen Manager</string>
+
+    <string name="pref_enabled_title">Enable</string>
+
+    <string name="pref_enabled_on_battery_title">Enabled on Battery</string>
+    <string name="pref_enabled_on_battery_desc">Keep screen awake even on battery power.</string>
+
+    <string name="pref_timeofday_title">Enabled at Time</string>
+    <string name="pref_timeofday_desc">Set the time period when the screen should be kept awake.</string>
+
+    <string-array name="pref_timeofday_display_values">
+        <item>Only during the daytime</item>
+        <item>Only during the nighttime</item>
+        <item>Always</item>
+    </string-array>
+
+    <string name="pref_light_threshold_title">Daylight Threshold</string>
+    <string name="pref_light_threshold_desc">A range of brightness (in illuminance units) to mark the transition between night and day.</string>
+    <string name="pref_light_threshold_min_label">Dark</string>
+    <string name="pref_light_threshold_max_label">Bright</string>
+
+    <string name="pref_light_interval_title">Daylight Test Rate</string>
+    <string name="pref_light_interval_desc">How often should the sensor check its value to see if daylight has changed?</string>
+
+    <string-array name="pref_light_intervale_display_values">
+        <item>Continuous</item>
+        <item>30 seconds</item>
+        <item>1 minute</item>
+        <item>5 minutes</item>
+        <item>10 minutes</item>
+        <item>30 minutes</item>
+        <item>1 hour</item>
+    </string-array>
+
+</resources>

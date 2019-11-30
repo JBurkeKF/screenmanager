@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<declare-styleable name="smPreferenceSlider">
+		<attr format="float" name="min" />
+		<attr format="float" name="max" />
+		<attr format="string" name="minLabel" />
+		<attr format="string" name="maxLabel" />
+		<attr format="float" name="interval" />
+	</declare-styleable>
+</resources>

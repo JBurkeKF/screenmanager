@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="pref_enabled">pref_enabled</string>
+    <item name="pref_enabled_default" type="bool" format="boolean">false</item>
+
+    <string name="pref_enabled_on_battery">pref_enabled_on_battery</string>
+    <item name="pref_enabled_on_battery_default" type="bool" format="boolean">false</item>
+
+    <string name="pref_timeofday">pref_timeofday</string>
+    <string name="pref_timeofday_default">day</string>
+
+    <string-array name="pref_timeofday_values">
+        <item>day</item>
+        <item>night</item>
+        <item>all</item>
+    </string-array>
+
+    <string name="pref_light_threshold">pref_light_threshold</string>
+    <string name="pref_light_threshold_default">4.0-7.0</string>
+    <item name="pref_light_threshold_min_value" type="dimen" format="float">0.0</item>
+    <item name="pref_light_threshold_max_value" type="dimen" format="float">20.0</item>
+    <item name="pref_light_threshold_interval_value" type="dimen" format="float">0.5</item>
+
+    <string name="pref_light_interval">pref_light_interval</string>
+    <string name="pref_light_interval_default">1800</string>
+
+    <string-array name="pref_light_interval_values">
+        <item>0</item>
+        <item>30</item>
+        <item>60</item>
+        <item>300</item>
+        <item>600</item>
+        <item>1800</item>
+        <item>3600</item>
+    </string-array>
+
+</resources>
