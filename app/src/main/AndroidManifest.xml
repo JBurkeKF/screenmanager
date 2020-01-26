@@ -45,6 +45,11 @@
             </intent-filter>
         </receiver>
 
+        <service
+            android:name=".ScreenManagerBootService"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+
         <receiver
             android:name="fishnoodle.screenmanager.RestartScreenManagerReceiver"
             android:enabled="true"

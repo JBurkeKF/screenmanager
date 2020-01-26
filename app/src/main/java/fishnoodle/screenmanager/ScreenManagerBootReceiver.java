@@ -10,9 +10,10 @@ public class ScreenManagerBootReceiver extends BroadcastReceiver
     @Override
     public void onReceive( final Context context, final Intent intent )
     {
+        //SysLog.writeD("Start ScreenManager from boot complete receiver" );
         if ( context != null && intent != null && TextUtils.equals( intent.getAction(), Intent.ACTION_BOOT_COMPLETED ) )
         {
-            ScreenManagerService.startServiceIfNotRunning( context );
+            ScreenManagerBootService.enqueueWork( context, intent );
         }
     }
 }
