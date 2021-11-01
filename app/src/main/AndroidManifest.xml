@@ -6,7 +6,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
 
@@ -27,12 +26,6 @@
 
         <service
             android:name=".ScreenManagerService"
-            android:enabled="true"
-            android:exported="true">
-        </service>
-
-        <service
-            android:name=".PhoneVolumeService"
             android:enabled="true"
             android:exported="true">
         </service>

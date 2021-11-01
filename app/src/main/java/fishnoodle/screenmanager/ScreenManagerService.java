@@ -303,9 +303,6 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         if ( !isServiceRunning )
         {
             context.startService( serviceIntent );
-
-            //final Intent phoneServiceIntent = new Intent( context, PhoneVolumeService.class );
-            //context.startService( phoneServiceIntent );
         }
 
         return serviceIntent;
