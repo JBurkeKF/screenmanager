@@ -35,4 +35,7 @@
         <item>3600</item>
     </string-array>
 
+    <string name="pref_lock_screen_notification">pref_lock_screen_notification</string>
+    <item name="pref_lock_screen_notification_default" type="bool" format="boolean">false</item>
+
 </resources>

@@ -77,12 +77,13 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
     private boolean isDay = false;
     private boolean isDayInitialized = false;
 
+    private boolean showLockScreenNotification = false;
+    private boolean setLockScreenNotification = false;
+
     @Override
     public void onCreate()
     {
         super.onCreate();
-
-        startServiceInForeground();
 
         handler = new Handler( getMainLooper() );
 
@@ -92,6 +93,8 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         prefs.registerOnSharedPreferenceChangeListener( this );
 
         onSharedPreferenceChanged( prefs, null );
+
+        startServiceInForeground();
     }
 
     @Override
@@ -159,10 +162,13 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         final String prefTimeOfDayKey = getString( R.string.pref_timeofday );
         final String prefLightThresholdKey = getString( R.string.pref_light_threshold );
         final String prefLightIntervalKey = getString( R.string.pref_light_interval );
+        final String prefLockScreenNotificationKey = getString( R.string.pref_lock_screen_notification );
 
         final float oldLightThresholdMin = lightThresholdMin;
         final float oldLightThresholdMax = lightThresholdMax;
         final float oldLightTestIntervalS = lightTestIntervalS;
+
+        boolean needsRestart = false;
 
         if ( updateAll || TextUtils.equals( key, prefEnabledKey ) )
         {
@@ -207,26 +213,49 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             }
         }
 
-        SysLog.writeD( "Update wake lock from shared prefs" );
-
-        handler.post( new Runnable()
+        if (updateAll || TextUtils.equals( key, prefLockScreenNotificationKey ) )
         {
-            public void run()
+            final boolean newLockScreenNotfication = prefs.getBoolean( prefLockScreenNotificationKey, getResources().getBoolean( R.bool.pref_lock_screen_notification_default ) );
+
+            if ( newLockScreenNotfication != showLockScreenNotification )
             {
-                if ( oldLightThresholdMin != lightThresholdMin ||
-                    oldLightThresholdMax != lightThresholdMax ||
-                    oldLightTestIntervalS != lightTestIntervalS )
+                if ( setLockScreenNotification )
                 {
-                    updateLightTest();
-                    setLightSensorEnabled( true );
-                    rescheduleAlarms( false );
+                    needsRestart = true;
                 }
 
-                updateBatteryReceiverState( false );
-                updateScreenStateReceiverState( false );
-                updateScreenWakeLockState();
+                showLockScreenNotification = newLockScreenNotfication;
             }
-        } );
+        }
+
+        SysLog.writeD( "Update wake lock from shared prefs" );
+
+        if ( needsRestart )
+        {
+            stopForeground( true );
+            stopSelf();
+        }
+        else
+        {
+            handler.post( new Runnable()
+            {
+                public void run()
+                {
+                    if ( oldLightThresholdMin != lightThresholdMin ||
+                            oldLightThresholdMax != lightThresholdMax ||
+                            oldLightTestIntervalS != lightTestIntervalS )
+                    {
+                        updateLightTest();
+                        setLightSensorEnabled( true );
+                        rescheduleAlarms( false );
+                    }
+
+                    updateBatteryReceiverState( false );
+                    updateScreenStateReceiverState( false );
+                    updateScreenWakeLockState();
+                }
+            } );
+        }
     }
 
     @Override
@@ -301,13 +330,15 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             notificationBuilder.setOngoing( true );
             notificationBuilder.setSmallIcon( R.drawable.ic_launcher );
             notificationBuilder.setCategory( Notification.CATEGORY_SERVICE );
-            notificationBuilder.setVisibility( Notification.VISIBILITY_SECRET );
+            notificationBuilder.setVisibility( showLockScreenNotification ? Notification.VISIBILITY_PRIVATE : Notification.VISIBILITY_SECRET );
             notificationBuilder.setPriority( NotificationCompat.PRIORITY_LOW );
             notificationBuilder.setContentIntent( settingsActivityPendingIntent );
 
             Notification notification = notificationBuilder.build();
 
             startForeground( NOTIFICATION_SERVICE_ID, notification );
+
+            setLockScreenNotification = true;
         }
     }
 

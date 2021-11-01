@@ -47,4 +47,11 @@
         android:entries="@array/pref_light_intervale_display_values"
     />
 
+    <CheckBoxPreference
+        android:key="@string/pref_lock_screen_notification"
+        android:title="@string/pref_lock_screen_notification_title"
+        android:summary="@string/pref_lock_screen_notification_desc"
+        android:defaultValue="@bool/pref_lock_screen_notification_default"
+    />
+
 </PreferenceScreen>

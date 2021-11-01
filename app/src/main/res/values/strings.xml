@@ -35,4 +35,7 @@
         <item>1 hour</item>
     </string-array>
 
+    <string name="pref_lock_screen_notification_title">Show Lock Screen Notification</string>
+    <string name="pref_lock_screen_notification_desc">Show the service notification on the lock screen (helpful with Android 12&quot;s clock)</string>
+
 </resources>
