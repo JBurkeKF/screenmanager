@@ -94,7 +94,10 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
 
         onSharedPreferenceChanged( prefs, null );
 
-        startServiceInForeground();
+        if ( enabled )
+        {
+            startServiceInForeground();
+        }
     }
 
     @Override
@@ -173,6 +176,8 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
         if ( updateAll || TextUtils.equals( key, prefEnabledKey ) )
         {
             enabled = prefs.getBoolean( prefEnabledKey, getResources().getBoolean( R.bool.pref_enabled_default ) );
+
+            needsRestart |= !enabled;
         }
 
         if ( updateAll || TextUtils.equals( key, prefEnabledOnBatteryKey ) )

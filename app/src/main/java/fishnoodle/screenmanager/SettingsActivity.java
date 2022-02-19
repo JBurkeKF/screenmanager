@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 
@@ -29,6 +30,11 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
     {
         super.onCreate( savedInstanceState );
 
+        final SharedPreferences prefs = getSharedPreferences( VersionDefinition.SHARED_PREFS_NAME, VersionDefinition.SHARED_PREFS_MODE );
+        final String prefEnabledKey = getString( R.string.pref_enabled );
+
+        final boolean enabled = prefs.getBoolean( prefEnabledKey, getResources().getBoolean( R.bool.pref_enabled_default ) );
+
         if ( savedInstanceState == null )
         {
             getFragmentManager().beginTransaction().replace( android.R.id.content, new SettingsFragment() ).commit();
@@ -39,10 +45,19 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
 
             if ( stateDialogOpen )
             {
-                final Intent serviceIntent = new Intent( this, ScreenManagerService.class );
-                serviceIntent.setAction( ScreenManagerService.ACTION_REQUEST_DISPLAY_STATE );
 
-                startService( serviceIntent );
+
+                if ( enabled )
+                {
+                    final Intent serviceIntent = new Intent( this, ScreenManagerService.class );
+                    serviceIntent.setAction( ScreenManagerService.ACTION_REQUEST_DISPLAY_STATE );
+
+                    startService( serviceIntent );
+                }
+                else
+                {
+                    showDisabledStateDialog();
+                }
             }
         }
 
@@ -50,7 +65,10 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
 
         registerReceiver( displayStateReceiver, filter );
 
-        startServiceIntent = ScreenManagerService.startServiceIfNotRunning( this );
+        if ( enabled )
+        {
+            startServiceIntent = ScreenManagerService.startServiceIfNotRunning( this );
+        }
     }
 
     @Override
@@ -87,6 +105,34 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
         {
             stateDialog = null;
         }
+    }
+
+    public void showDisabledStateDialog()
+    {
+        if ( stateDialog != null )
+        {
+            stateDialog.dismiss();
+        }
+
+        stateDialog = new AlertDialog.Builder( SettingsActivity.this )
+                .setTitle( "Service State" )
+                .setMessage( "Disabled" )
+                .setPositiveButton( android.R.string.ok, null )
+                .create();
+
+        stateDialog.setOnDismissListener( SettingsActivity.this );
+
+        stateDialog.show();
+    }
+
+    public void restartService()
+    {
+        startServiceIntent = ScreenManagerService.startServiceIfNotRunning( this );
+    }
+
+    public void serviceStopped()
+    {
+        startServiceIntent = null;
     }
 
     private class DisplayStateReceiver extends BroadcastReceiver
