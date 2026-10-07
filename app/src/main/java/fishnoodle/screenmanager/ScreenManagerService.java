@@ -15,11 +15,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ServiceInfo;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -326,7 +328,7 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             notificationManager.createNotificationChannel( channel );
 
             final Intent settingsActivityIntent = new Intent( this, SettingsActivity.class );
-            final PendingIntent settingsActivityPendingIntent = PendingIntent.getActivity( this, 120, settingsActivityIntent, 0 );
+            final PendingIntent settingsActivityPendingIntent = PendingIntent.getActivity( this, 120, settingsActivityIntent, PendingIntent.FLAG_IMMUTABLE );
 
             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder( this, channelID );
             notificationBuilder.setOngoing( true );
@@ -338,7 +340,14 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
 
             Notification notification = notificationBuilder.build();
 
-            startForeground( NOTIFICATION_SERVICE_ID, notification );
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU )
+            {
+                startForeground( NOTIFICATION_SERVICE_ID, notification );
+            }
+            else
+            {
+                startForeground( NOTIFICATION_SERVICE_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE );
+            }
 
             setLockScreenNotification = true;
         }
@@ -409,7 +418,7 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
                 final IntentFilter filter = new IntentFilter( Intent.ACTION_POWER_CONNECTED );
                 filter.addAction( Intent.ACTION_POWER_DISCONNECTED );
 
-                registerReceiver( batteryReceiver, filter );
+                registerReceiver( batteryReceiver, filter, RECEIVER_EXPORTED );
                 batteryReceiverRegistered = true;
             }
             else
@@ -435,7 +444,7 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
                 filter.addAction( Intent.ACTION_SCREEN_ON );
                 filter.addAction( Intent.ACTION_SCREEN_OFF );
 
-                registerReceiver( screenStateReceiver, filter );
+                registerReceiver( screenStateReceiver, filter, RECEIVER_EXPORTED );
                 screenStateReceiverRegistered = true;
             }
             else
@@ -508,7 +517,7 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
     private synchronized boolean isOnBattery()
     {
         final IntentFilter filter = new IntentFilter( Intent.ACTION_BATTERY_CHANGED );
-        final Intent batteryIntent = registerReceiver( null, filter );
+        final Intent batteryIntent = registerReceiver( null, filter, RECEIVER_EXPORTED );
 
         final int status = batteryIntent.getIntExtra( BatteryManager.EXTRA_STATUS, -1 );
         final int pluggedStatus = batteryIntent.getIntExtra( BatteryManager.EXTRA_PLUGGED, -1 );
@@ -600,7 +609,7 @@ public class ScreenManagerService extends Service implements SharedPreferences.O
             final Intent lightSensorIntent = new Intent( this, ScreenManagerService.class );
             lightSensorIntent.setAction( ACTION_UPDATE );
 
-            lightSensorAlarm = PendingIntent.getService( this, LIGHT_SENSOR_INTENT_REQUEST_CODE, lightSensorIntent, PendingIntent.FLAG_CANCEL_CURRENT );
+            lightSensorAlarm = PendingIntent.getService( this, LIGHT_SENSOR_INTENT_REQUEST_CODE, lightSensorIntent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE );
 
             boolean scheduledAlarm = false;
             final long currentTimeMS = SystemClock.elapsedRealtime();

@@ -63,7 +63,7 @@ public class SettingsActivity extends Activity implements DialogInterface.OnDism
 
         final IntentFilter filter = new IntentFilter( ACTION_DISPLAY_STATE );
 
-        registerReceiver( displayStateReceiver, filter );
+        registerReceiver( displayStateReceiver, filter, RECEIVER_EXPORTED );
 
         if ( enabled )
         {
